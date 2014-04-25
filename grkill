@@ -1,0 +1,34 @@
+#!/usr/bin/env bash
+# 
+
+# TODO: get and kill the parent process.
+tmp=$(ps xo pid,fname --sort=-rss | head -2 | tail -1)
+
+# convert into an array
+to_be_kill=(${tmp// / })
+
+# ask the user.
+function should_i_kill() {
+    timeout 5s zenity --question --text="This ${to_be_kill[1]} with pid ${to_be_kill[0]} will be killed, press no to cancel."
+    echo $?
+}
+
+# get user return.
+answer=$(should_i_kill)
+
+# kill it, unless user press "no" button.
+if [[ ${answer} == 1 ]] ; then
+    msg='Okai, killing is a criminal.'
+else
+    output=$(kill -9 ${to_be_kill[0]} 2>&1)
+    was_killed=$?
+    if [[ ${was_killed} == 1 ]]; then
+        msg="I cant kill this thing ${to_be_kill[1]} (${to_be_kill[0]}).\n {$output}"
+    else
+        msg="${to_be_kill[1]} with pid ${to_be_kill[0]} was killed."
+    fi
+fi
+
+# show it.
+echo -e "${msg}"
+notify-send -t 5000 "greedykill" "${msg}"
